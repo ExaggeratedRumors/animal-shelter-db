@@ -10,7 +10,9 @@ create or replace type t_pets as object (
     health varchar2(30),
     behaviour varchar2(100),
     description varchar2(100),
-    picture blob
+    picture blob,
+    box ref t_boxes
+    
 );
 /
 
@@ -54,7 +56,7 @@ create or replace type t_boxes as object (
 
 create or replace type t_duties as object (
     emp_id number,
-    box_id number,
+    box ref t_boxes,
     weekday number,
     start_hour hour,
     end_hour hour,
@@ -62,16 +64,16 @@ create or replace type t_duties as object (
 )
 
 create or replace type t_donations as object (
-    donator_id number,
-    pet_id number,
+    donator ref t_donators,
+    pet ref t_pets,
     value number,
     donation_date date
 );
 /
 
 create or replace type r_adoptions as object (
-    owner_id number,
-    pet_id number,
+    owner ref t_owners,
+    pet ref t_pets,
     adoption_date date,
     descriptions varchar2(100)
 );
