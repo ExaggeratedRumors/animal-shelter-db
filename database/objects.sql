@@ -20,13 +20,13 @@ create type k_pets as table of t_pets;
 
 create or replace type t_adoptions as object (
     adoption_id number,
-    pet ref t_pet,
+    pet ref t_pets,
     adoption_date date,
     descriptions varchar2(100)
 );
 /
 
-create type k_adoptions as table of t_adoptions;
+create or replace type k_adoptions as table of t_adoptions;
 /
 
 create or replace type t_owners as object (
@@ -64,10 +64,12 @@ create or replace type t_duties as object (
     emp_id number,
     box_id number,
     weekday number,
-    start_hour hour,
-    end_hour hour,
+    start_hour number,
+    end_hour number,
     responsibilities varchar2(100)
-)
+);
+/
+
 
 create or replace type t_donators as object (
     donator_id number,
@@ -75,7 +77,8 @@ create or replace type t_donators as object (
     lastname varchar2(20),
     address varchar2(50),
     total_donations number
-)
+);
+/
 
 create or replace type t_donations as object (
     donator_id number,
