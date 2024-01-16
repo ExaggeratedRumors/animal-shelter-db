@@ -10,9 +10,32 @@ create or replace type t_pets as object (
     health varchar2(30),
     behaviour varchar2(100),
     description varchar2(100),
-    picture blob,
-    box ref t_boxes
-    
+    picture blob
+);
+/
+
+create type k_pets as table of t_pets;
+/
+
+
+create or replace type t_adoptions as object (
+    adoption_id number,
+    pet ref t_pet,
+    adoption_date date,
+    descriptions varchar2(100)
+);
+/
+
+create type k_adoptions as table of t_adoptions;
+/
+
+create or replace type t_owners as object (
+    owner_id number,
+    firstname varchar2(20),
+    lastname varchar2(20),
+    address varchar2(50),
+    adoptions k_adoptions,
+    created_at date
 );
 /
 
@@ -28,15 +51,23 @@ create or replace type t_employees as object (
 );
 /
 
-create or replace type t_owners as object (
-    owner_id number,
-    firstname varchar2(20),
-    lastname varchar2(20),
-    address varchar2(50),
-    adoptions number,
-    created_at date
+create or replace type t_boxes as object (
+    box_id number,
+    max_capacity number,
+    current_capacity number,
+    spiecies varchar2(20),
+    pets k_pets
 );
 /
+
+create or replace type t_duties as object (
+    emp_id number,
+    box_id number,
+    weekday number,
+    start_hour hour,
+    end_hour hour,
+    responsibilities varchar2(100)
+)
 
 create or replace type t_donators as object (
     donator_id number,
@@ -46,39 +77,16 @@ create or replace type t_donators as object (
     total_donations number
 )
 
-create or replace type t_boxes as object (
-    box_id number,
-    max_capacity number,
-    current_capacity number,
-    spiecies varchar2(20)
-);
-/
-
-create or replace type t_duties as object (
-    emp_id number,
-    box ref t_boxes,
-    weekday number,
-    start_hour hour,
-    end_hour hour,
-    responsibilities varchar2(100)
-)
-
 create or replace type t_donations as object (
-    donator ref t_donators,
-    pet ref t_pets,
+    donator_id number,
+    pet_id number,
     value number,
     donation_date date
 );
 /
 
-create or replace type r_adoptions as object (
-    owner ref t_owners,
-    pet ref t_pets,
-    adoption_date date,
-    descriptions varchar2(100)
-);
-/
 
+/* Tworzenie tabeli na podstawie typów */
 /*---------------------------------------------------*/
 
 create table pets of t_pets (
@@ -86,13 +94,30 @@ create table pets of t_pets (
 );
 /
 
-create table employees of t_employees (
-    primary key (emp_id)
+create table adoptions of t_adoptions (
+    primary key (adoption_id)
 );
 /
 
 create table owners of t_owners (
     primary key (owner_id)
+) nested table adoptions store as s_adoptions;
+/
+
+create table employees of t_employees (
+    primary key (emp_id)
+);
+/
+
+create table boxes of t_boxes (
+    primary key (box_id)
+) nested table pets store as s_pets; 
+/
+
+create table duties of t_duties (
+    primary key (emp_id, box_id),
+    foreign key(emp_id) references employees(emp_id) on delete cascade,
+    foreign key(box_id) references boxes(box_id) on delete cascade
 );
 /
 
@@ -101,16 +126,35 @@ create table donators of t_donators (
 );
 /
 
-create table boxes of t_boxes (
-    primary key (box_id)
+create table donations of t_donations (
+    primary key (donator_id, pet_id),
+    foreign key(donator_id) references donators(donator_id) on delete cascade,
+    foreign key(pet_id) references pets(pet_id) on delete cascade
 );
 /
 
-create table donations of t_donations;
-/
 
-create table adoptions of t_adoptions;
-/
+/* Tworzenie sekwencji */
+/*---------------------------------------------------*/
 
-create table duties of t_duties;
-/
+create sequence seq_pets minvalue 1 start with 1;
+create sequence seq_adoptions minvalue 1 start with 1;
+create sequence seq_owners minvalue 1 start with 1;
+create sequence seq_employees minvalue 1 start with 1;
+create sequence seq_boxes minvalue 1 start with 1;
+create sequence seq_donators minvalue 1 start with 1;
+
+
+/* Wprowadzanie rekordów */
+/*---------------------------------------------------*/
+
+insert into pets
+values (1, 'testpet', 'dog', 'german shepherd', 'in shelter', null, null, 
+        0, 'healthy', 'aggresive', null, null);
+
+insert into boxes
+values (1, 25, 1, 'dogs', k_pets(
+        t_pets(2, 'testpet2', 'dog', 'german shepherd', 'in shelter', null, null, 
+        0, 'healthy', 'aggresive', null, null)
+        )
+    );
