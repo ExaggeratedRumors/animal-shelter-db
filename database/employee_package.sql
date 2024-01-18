@@ -21,12 +21,10 @@ create or replace package body employee_package as
     ) as 
  
     begin
-        insert into employees o values (
-            1, firstname, lastname, NULL, SYSDATE, NULL, role
-        );
+        --insert into employees o values (1, firstname, lastname, NULL, SYSDATE, NULL, role);
     end addEmployee;
-    procedure getPets(species in varchar2(20));
+    procedure getPets(species in varchar2);
     procedure getDuties(weekday in number);    
-end employee;
+end employee_package;
     
     

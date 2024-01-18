@@ -29,8 +29,8 @@ PACKAGE BODY DONATOR AS
         lastname varchar2,
         address varchar2
     )as begin
-        /* id jest zawsze 0 tymczasowo */
-        insert into donators select 0, firstname, lastname, address, 0;
+        
+        --insert into donators select 0, firstname, lastname, address, 0;
     
     end addDonator;
 
