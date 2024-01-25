@@ -11,7 +11,7 @@ create or replace type t_pets as object (
     behaviour varchar2(100),
     description varchar2(100),
     picture blob,
-    box ref t_box
+    box ref t_boxes
 );
 /
 
@@ -53,7 +53,7 @@ create or replace type t_boxes as object (
     box_id number,
     max_capacity number,
     current_capacity number,
-    spiecies varchar2(20)
+    species varchar2(20)
 );
 /
 
@@ -144,20 +144,4 @@ create sequence seq_employees minvalue 1 start with 1;/
 create sequence seq_boxes minvalue 1 start with 1;/
 create sequence seq_donators minvalue 1 start with 1;/
 
-
-/* Wprowadzanie rekordów */
-/*---------------------------------------------------*/
-
-
-
-insert into boxes
-values (1, 25, 1, 'dogs');/
-    
-insert into pets
-values (1, 'testpet', 'dog', 'german shepherd', 'in shelter', null, null, 
-        0, 'healthy', 'aggresive', null, null, 1);/
-
-
-select * from boxes;
-select * from pets;
 
