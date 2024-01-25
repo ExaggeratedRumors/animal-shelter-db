@@ -21,11 +21,9 @@ create or replace package body owner_package as
     ) as 
         testy number;
     begin
-        insert into owners o values (
-            1, firstname, lastname, address, adoptions, sysdate
-        );
+        --insert into owners o values (1, firstname, lastname, address, adoptions, sysdate);
     end addOwner;
-    procedure getPets(species in varchar2(20));
+    procedure getPets(species in varchar2);
     procedure adoptPet(pet_id in number);    
 end owner;
     

@@ -10,11 +10,9 @@ create or replace type t_pets as object (
     health varchar2(30),
     behaviour varchar2(100),
     description varchar2(100),
-    picture blob
+    picture blob,
+    box ref t_boxes
 );
-/
-
-create type k_pets as table of t_pets;
 /
 
 
@@ -55,8 +53,7 @@ create or replace type t_boxes as object (
     box_id number,
     max_capacity number,
     current_capacity number,
-    spiecies varchar2(20),
-    pets k_pets
+    species varchar2(20)
 );
 /
 
@@ -89,7 +86,7 @@ create or replace type t_donations as object (
 /
 
 
-/* Tworzenie tabeli na podstawie typów */
+/* Tworzenie tabeli na podstawie typÃ³w */
 /*---------------------------------------------------*/
 
 create table pets of t_pets (
@@ -114,7 +111,7 @@ create table employees of t_employees (
 
 create table boxes of t_boxes (
     primary key (box_id)
-) nested table pets store as s_pets; 
+);
 /
 
 create table duties of t_duties (
@@ -140,28 +137,10 @@ create table donations of t_donations (
 /* Tworzenie sekwencji */
 /*---------------------------------------------------*/
 
-create sequence seq_pets minvalue 1 start with 1;
-create sequence seq_adoptions minvalue 1 start with 1;
-create sequence seq_owners minvalue 1 start with 1;
-create sequence seq_employees minvalue 1 start with 1;
-create sequence seq_boxes minvalue 1 start with 1;
-create sequence seq_donators minvalue 1 start with 1;
+create sequence seq_pets minvalue 1 start with 1;/
+create sequence seq_adoptions minvalue 1 start with 1;/
+create sequence seq_owners minvalue 1 start with 1;/
+create sequence seq_employees minvalue 1 start with 1;/
+create sequence seq_boxes minvalue 1 start with 1;/
+create sequence seq_donators minvalue 1 start with 1;/
 
-
-/* Wprowadzanie rekordów */
-/*---------------------------------------------------*/
-
-insert into pets
-values (1, 'testpet', 'dog', 'german shepherd', 'in shelter', null, null, 
-        0, 'healthy', 'aggresive', null, null);
-
-
-
-insert into boxes
-values (1, 25, 1, 'dogs', k_pets(
-        t_pets(2, 'testpet2', 'dog', 'german shepherd', 'in shelter', null, null, 
-        0, 'healthy', 'aggresive', null, null)
-        )
-    );
-    
-    
