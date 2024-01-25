@@ -15,7 +15,6 @@ create or replace type t_pets as object (
 );
 /
 
-
 create or replace type t_adoptions as object (
     adoption_id number,
     pet ref t_pets,
