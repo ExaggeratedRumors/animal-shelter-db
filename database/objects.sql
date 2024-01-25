@@ -86,7 +86,7 @@ create or replace type t_donations as object (
 /
 
 
-/* Tworzenie tabeli na podstawie typów */
+/* Tworzenie tabeli na podstawie typÃ³w */
 /*---------------------------------------------------*/
 
 create table pets of t_pets (
@@ -143,5 +143,4 @@ create sequence seq_owners minvalue 1 start with 1;/
 create sequence seq_employees minvalue 1 start with 1;/
 create sequence seq_boxes minvalue 1 start with 1;/
 create sequence seq_donators minvalue 1 start with 1;/
-
 
