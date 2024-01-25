@@ -155,9 +155,13 @@ insert into pets
 values (1, 'testpet', 'dog', 'german shepherd', 'in shelter', null, null, 
         0, 'healthy', 'aggresive', null, null);
 
+
+
 insert into boxes
 values (1, 25, 1, 'dogs', k_pets(
         t_pets(2, 'testpet2', 'dog', 'german shepherd', 'in shelter', null, null, 
         0, 'healthy', 'aggresive', null, null)
         )
     );
+    
+    
