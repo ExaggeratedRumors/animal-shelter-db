@@ -38,15 +38,20 @@ PACKAGE BODY DONATOR AS
         -- Declare variables to store references
         v_donator_ref REF t_donators;
         v_pet_ref REF t_pets;
+        v_pet_status VARCHAR2(30);
+        PetNotAvailableException EXCEPTION;
     BEGIN
         -- Find references for the given IDs
-        SELECT REF(d), REF(p)
-        INTO v_donator_ref, v_pet_ref
+        SELECT REF(d), REF(p), p.status
+        INTO v_donator_ref, v_pet_ref, v_pet_status
         FROM donators d, pets p
         WHERE d.donator_id = p_donator_id
           AND p.pet_id = p_pet_id;
+          
+        IF LOWER(v_pet_status) <> 'available' THEN
+            raise PetNotAvailableException;
+        END IF;
 
-        -- Insert a new donation into the 'donations' table
         INSERT INTO donations (
             donation_id,
             donator,
@@ -61,19 +66,21 @@ PACKAGE BODY DONATOR AS
             SYSDATE
         );
 
-        -- Update total_donations in donators
         UPDATE donators
         SET total_donations = total_donations + 1
         WHERE donator_id = p_donator_id;
 
-        -- Update donation_status in pets
         UPDATE pets
         SET donation_status = donation_status + p_amount
         WHERE pet_id = p_pet_id;
 
         COMMIT;
-
         DBMS_OUTPUT.PUT_LINE('Donation added. Donator ID: ' || p_donator_id || ', Amount: ' || p_amount);
+        EXCEPTION
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('Pet not found!');
+    WHEN PetNotAvailableException THEN
+        DBMS_OUTPUT.PUT_LINE('This pet cannot take donations.');
     END donate;
 
 END DONATOR;
@@ -85,7 +92,7 @@ begin
 end;
 
 begin
-    donator.donate(1,4,1);
+    donator.donate(1,4,6);
 end;
 
 select * from donations; --TODO
