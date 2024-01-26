@@ -24,10 +24,3 @@ FROM boxes;
 
 DELETE FROM pets;
 DELETE FROM boxes;
-
-DROP SEQUENCE seq_pets;
-DROP SEQUENCE seq_employees;
-DROP SEQUENCE seq_boxes;
-DROP SEQUENCE seq_donators;
-DROP SEQUENCE seq_owners;
-DROP SEQUENCE seq_adoptions;
