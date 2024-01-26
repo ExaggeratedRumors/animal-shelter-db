@@ -1,3 +1,11 @@
+create or replace type t_boxes as object (
+    box_id number,
+    max_capacity number,
+    current_capacity number,
+    species varchar2(20)
+);
+/
+
 create or replace type t_pets as object (
     pet_id number,
     name varchar2(20),
@@ -14,7 +22,6 @@ create or replace type t_pets as object (
     box ref t_boxes
 );
 /
-
 
 create or replace type t_adoptions as object (
     adoption_id number,
@@ -46,14 +53,6 @@ create or replace type t_employees as object (
     joined_at date,
     left_at date,
     role varchar2(20)
-);
-/
-
-create or replace type t_boxes as object (
-    box_id number,
-    max_capacity number,
-    current_capacity number,
-    species varchar2(20)
 );
 /
 
@@ -89,11 +88,6 @@ create or replace type t_donations as object (
 /* Tworzenie tabeli na podstawie typów */
 /*---------------------------------------------------*/
 
-create table pets of t_pets (
-    primary key (pet_id)
-);
-/
-
 create table adoptions of t_adoptions (
     primary key (adoption_id)
 );
@@ -111,6 +105,12 @@ create table employees of t_employees (
 
 create table boxes of t_boxes (
     primary key (box_id)
+);
+/
+
+create table pets of t_pets (
+    primary key (pet_id),
+    foreign key (box) references boxes
 );
 /
 
@@ -143,4 +143,3 @@ create sequence seq_owners minvalue 1 start with 1;/
 create sequence seq_employees minvalue 1 start with 1;/
 create sequence seq_boxes minvalue 1 start with 1;/
 create sequence seq_donators minvalue 1 start with 1;/
-
