@@ -92,7 +92,7 @@ begin
 end;
 
 begin
-    donator.donate(1,4,6);
+    donator.donate(6,4,1);
 end;
 
 select * from donations; --TODO

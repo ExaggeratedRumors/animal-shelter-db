@@ -24,6 +24,7 @@ create or replace package employee_package as
     PROCEDURE printBoxesAndPets;
     FUNCTION getTransactions RETURN SYS_REFCURSOR;
     PROCEDURE printTransactions;
+    procedure changeStatus(p_pet_id NUMBER, p_new_status VARCHAR2);
 end employee_package;
 /
 
@@ -322,6 +323,24 @@ create or replace package body employee_package as
         -- Close the cursor
         CLOSE v_transaction_cursor;
     END printTransactions;
+    
+    
+    procedure changeStatus(p_pet_id NUMBER, p_new_status VARCHAR2) AS
+    BEGIN
+        UPDATE pets
+        SET status = p_new_status
+        WHERE pet_id = p_pet_id;
+    
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Pet status updated successfully.');
+        
+        if p_new_status = 'Deceased' then
+            removePet(p_pet_id);
+        end if;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('Pet not found.');
+    end changeStatus;
 
 
 end employee_package;
@@ -416,6 +435,14 @@ declare
 begin
     employee_package.removepet(pet_id);
     employee_package.getpets('Dog');
+end;
+
+--change pet status
+declare
+    new_status varchar2(20) := 'Deceased';
+    pet_id NUMBER :=2;
+begin
+    employee_package.changeStatus(pet_id, new_status);
 end;
 
 --view pets
