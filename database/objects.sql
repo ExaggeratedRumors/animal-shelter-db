@@ -78,8 +78,8 @@ create or replace type t_donators as object (
 
 create or replace type t_donations as object (
     donation_id number,
-    donator_id number,
-    pet_id number,
+    donator ref t_donators,
+    pet ref t_pets,
     value number,
     donation_date date
 );
@@ -129,8 +129,8 @@ create table donators of t_donators (
 
 create table donations of t_donations (
     primary key (donation_id),
-    foreign key(donator_id) references donators(donator_id) on delete cascade,
-    foreign key(pet_id) references pets(pet_id) on delete cascade
+    foreign key(donator) references donators,
+    foreign key(pet) references pets
 );
 /
 
