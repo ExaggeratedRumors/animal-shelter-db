@@ -24,6 +24,7 @@ create or replace package employee_package as
     PROCEDURE printBoxesAndPets;
     FUNCTION getTransactions RETURN SYS_REFCURSOR;
     PROCEDURE printTransactions;
+    procedure changeStatus(p_pet_id NUMBER, p_new_status VARCHAR2);
 end employee_package;
 /
 
@@ -251,7 +252,7 @@ create or replace package body employee_package as
             FROM boxes b;
     
         CURSOR pet_cursor (p_box_id NUMBER) IS
-            SELECT p.pet_id, p.name, p.species, p.breed, p.behaviour
+            SELECT p.pet_id, p.name, p.species, p.breed, p.behaviour, p.donation_status
             FROM pets p
             WHERE p.box IS NOT NULL
               AND p.box.box_id = p_box_id;
@@ -271,6 +272,7 @@ create or replace package body employee_package as
                 DBMS_OUTPUT.PUT_LINE('  Species: ' || pet_rec.species);
                 DBMS_OUTPUT.PUT_LINE('  Breed: ' || pet_rec.breed);
                 DBMS_OUTPUT.PUT_LINE('  Behaviour: ' || pet_rec.behaviour);
+                DBMS_OUTPUT.PUT_LINE('  Donation status: ' || pet_rec.donation_status || 'PLN');
                 DBMS_OUTPUT.PUT_LINE('---');
             END LOOP;
             DBMS_OUTPUT.PUT_LINE('==================================');
@@ -278,15 +280,18 @@ create or replace package body employee_package as
     END printBoxesAndPets;
     
     FUNCTION getTransactions
-    RETURN SYS_REFCURSOR
+        RETURN SYS_REFCURSOR
     IS
         v_cursor SYS_REFCURSOR;
     BEGIN
         OPEN v_cursor FOR
-            SELECT d.donation_id, d.donator_id, d.pet_id, d.value, d.donation_date,
-                   dt.firstname AS donator_firstname, dt.lastname AS donator_lastname
-            FROM donations d
-            JOIN donators dt ON d.donator_id = dt.donator_id;
+            SELECT d.donation_id,
+                   DEREF(d.donator).firstname AS donator_firstname,
+                   DEREF(d.donator).lastname AS donator_lastname,
+                   DEREF(d.pet).pet_id AS pet_id,
+                   d.value,
+                   d.donation_date
+            FROM donations d;
         
         RETURN v_cursor;
     END getTransactions;
@@ -295,19 +300,17 @@ create or replace package body employee_package as
     IS
         v_transaction_cursor SYS_REFCURSOR;
         v_donation_id NUMBER;
-        v_donator_id NUMBER;
+        v_donator_firstname VARCHAR2(20);
+        v_donator_lastname VARCHAR2(20);
         v_pet_id NUMBER;
         v_value NUMBER;
         v_donation_date DATE;
-        v_donator_firstname VARCHAR2(20);
-        v_donator_lastname VARCHAR2(20);
     BEGIN
         v_transaction_cursor := getTransactions;
     
         -- Fetch and process the results
         LOOP
-            FETCH v_transaction_cursor INTO v_donation_id, v_donator_id, v_pet_id, v_value, v_donation_date,
-                                            v_donator_firstname, v_donator_lastname;
+            FETCH v_transaction_cursor INTO v_donation_id, v_donator_firstname, v_donator_lastname, v_pet_id, v_value, v_donation_date;
             EXIT WHEN v_transaction_cursor%NOTFOUND;
     
             -- Process the data as needed
@@ -320,6 +323,24 @@ create or replace package body employee_package as
         -- Close the cursor
         CLOSE v_transaction_cursor;
     END printTransactions;
+    
+    
+    procedure changeStatus(p_pet_id NUMBER, p_new_status VARCHAR2) AS
+    BEGIN
+        UPDATE pets
+        SET status = p_new_status
+        WHERE pet_id = p_pet_id;
+    
+        COMMIT;
+        DBMS_OUTPUT.PUT_LINE('Pet status updated successfully.');
+        
+        if p_new_status = 'Deceased' then
+            removePet(p_pet_id);
+        end if;
+    EXCEPTION
+        WHEN NO_DATA_FOUND THEN
+            DBMS_OUTPUT.PUT_LINE('Pet not found.');
+    end changeStatus;
 
 
 end employee_package;
@@ -414,6 +435,14 @@ declare
 begin
     employee_package.removepet(pet_id);
     employee_package.getpets('Dog');
+end;
+
+--change pet status
+declare
+    new_status varchar2(20) := 'Deceased';
+    pet_id NUMBER :=2;
+begin
+    employee_package.changeStatus(pet_id, new_status);
 end;
 
 --view pets
