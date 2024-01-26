@@ -30,3 +30,7 @@ DROP SEQUENCE seq_boxes;
 DROP SEQUENCE seq_donators;
 DROP SEQUENCE seq_owners;
 DROP SEQUENCE seq_adoptions;
+
+DELETE FROM pets;
+DELETE FROM boxes;
+

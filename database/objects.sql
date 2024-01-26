@@ -77,6 +77,7 @@ create or replace type t_donators as object (
 /
 
 create or replace type t_donations as object (
+    donation_id number,
     donator_id number,
     pet_id number,
     value number,
@@ -127,7 +128,7 @@ create table donators of t_donators (
 /
 
 create table donations of t_donations (
-    primary key (donator_id, pet_id),
+    primary key (donation_id),
     foreign key(donator_id) references donators(donator_id) on delete cascade,
     foreign key(pet_id) references pets(pet_id) on delete cascade
 );
