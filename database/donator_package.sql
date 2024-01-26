@@ -2,11 +2,7 @@ CREATE OR REPLACE
 PACKAGE DONATOR AS 
 
 
-    procedure addDonator(
-        firstname varchar2,
-        lastname varchar2,
-        address varchar2
-    );
+    procedure addDonator(firstname varchar2, lastname varchar2, address varchar2);
     
     procedure donate(p_donator_id in number, p_amount in number, p_pet_id in number);
     
@@ -73,9 +69,11 @@ END DONATOR;
 
 begin
     donator.addDonator('jaroslav','kaczynski','polska');
+    donator.addDonator('donald','tusk','niemcy');
 end;
 
 begin
-    donator.donate(2,3,1);
+    donator.donate(1,4,1);
 end;
-select * from donations
+select * from donations;
+select * from donators;
