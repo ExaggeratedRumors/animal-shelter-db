@@ -3,6 +3,12 @@
 /*---------------------------------------------------*/
 /* dodawanie zwierz?t obsluguje Employee */
 
+
+
+DELETE FROM pets;
+DELETE FROM boxes;
+
+
 --add box
 DECLARE
     v_box_id NUMBER;
@@ -20,7 +26,3 @@ FROM pets;
 
 SELECT box_id, max_capacity, current_capacity, species
 FROM boxes;
-
-
-DELETE FROM pets;
-DELETE FROM boxes;

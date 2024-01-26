@@ -8,15 +8,8 @@ PACKAGE DONATOR AS
         address varchar2
     );
     
-    /* wykonanie dotacji na wybrane zwierze */
-    procedure donate(donator_id in number, amount in number, pet_id in number);
+    procedure donate(p_donator_id in number, p_amount in number, p_pet_id in number);
     
-    /* wyswietl zwierzeta */
-    procedure showPets(species in varchar2);  
-    
-    
-    
-
 END DONATOR;
 /
 
@@ -25,29 +18,64 @@ CREATE OR REPLACE
 PACKAGE BODY DONATOR AS
 
     procedure addDonator(
-        firstname varchar2,
-        lastname varchar2,
-        address varchar2
-    )as begin
-        
-        --insert into donators select 0, firstname, lastname, address, 0;
-    
+        firstname in varchar2,
+        lastname in varchar2,
+        address in varchar2
+    ) as 
+    begin
+        insert into donators o values (
+            seq_donators.nextval,
+            firstname,
+            lastname,
+            address,
+            0
+        );
+        commit;
     end addDonator;
 
 
-    procedure donate(donator_id in number, amount in number, pet_id in number) as begin
-        /* id jest zawsze 0 tymczasowo */
-        insert into donations select 0, pet_id, amount, SYSDATE;
-        /* znajdz zwierze o pet_id i dodaj kwote */
-    
-    end donate;
-    
-    procedure showPets(species in varchar2) as
-        cursor pet_cursor is select name, species, breed, joined_at, picture, donation_status, behaviour, health, description from pets;
-    begin
-        /* wyswietl zwierzeta */
-    end showPets;
-    
+    PROCEDURE donate(
+        p_donator_id IN NUMBER,
+        p_amount IN NUMBER,
+        p_pet_id IN NUMBER
+    ) IS
+    BEGIN
+        -- Insert a new donation into the 'donations' table
+        INSERT INTO donations (
+            donation_id,
+            donator_id,
+            pet_id,
+            value,
+            donation_date
+        ) VALUES (
+            seq_donations.NEXTVAL,
+            p_donator_id,
+            p_pet_id,
+            p_amount,
+            SYSDATE
+        );
+
+        UPDATE donators
+        SET total_donations = total_donations + 1
+        WHERE donator_id = p_donator_id;
+        
+        UPDATE pets
+        SET donation_status = donation_status + p_amount
+        WHERE pet_id = p_pet_id;
+        
+        COMMIT;
+
+        DBMS_OUTPUT.PUT_LINE('Donation added. Donator ID: ' || p_donator_id || ', Amount: ' || p_amount);
+    END donate;
 
 END DONATOR;
 /
+
+begin
+    donator.addDonator('jaroslav','kaczynski','polska');
+end;
+
+begin
+    donator.donate(2,3,1);
+end;
+select * from donations
