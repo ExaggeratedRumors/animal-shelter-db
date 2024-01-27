@@ -6,8 +6,7 @@ create or replace package owner_package as
     procedure addOwner(
         firstname in varchar2,
         lastname in varchar2,
-        address in varchar2,
-        adoptions in k_adoptions
+        address in varchar2
     );
     
     /* Wyœwietlanie listy zwierz¹t o okreœlonym gatunku */
@@ -16,8 +15,24 @@ create or replace package owner_package as
     /* Pobieranie listy zwierz¹t o okreœlonym gatunku */
     function getPets(v_species in varchar2 default null) return sys_refcursor;
     
+    /* Wyœwietlanie listy adopcji */
+    procedure printAdoptions(v_owner_id in number);  
+    
+    /* Pobieranie listy adopcji */
+    function getAdoptions(v_owner_id in number) return k_adoptions pipelined;  
+
     /* Adopcja zwierzêcia */
     procedure adoptPet(v_owner_id in number, v_pet_id in number, v_result out varchar2);
+    
+    /* Usuniêcie adopcji i powiadomienie o œmierci zwierzêcia */
+    procedure cancelAdoption(v_owner_id in number, v_pet_id in number, v_result out varchar2);
+
+    /* Wyj¹tki */
+    ownerNotFoundException exception;
+    petNotAvailable exception;
+    petNotFound exception;
+    tooManyAdoptions exception;
+    
 end owner_package;
 /
 
@@ -26,8 +41,7 @@ create or replace package body owner_package as
     procedure addOwner(
         firstname in varchar2,
         lastname in varchar2,
-        address in varchar2,
-        adoptions in k_adoptions
+        address in varchar2
     ) as 
     begin
         insert into owners o values (
@@ -35,7 +49,7 @@ create or replace package body owner_package as
             firstname,
             lastname,
             address,
-            adoptions,
+            k_adoptions(),
             sysdate
         );
         commit;
@@ -58,10 +72,10 @@ create or replace package body owner_package as
     begin
         pet_cursor := owner_package.getPets(a_species);
         loop
-            exit when pet_cursor%notfound;
             fetch pet_cursor into v_id, v_name, v_species, v_breed, v_status,
                                 v_joined, v_health, v_behaviour, v_description,
                                 v_picture;
+            exit when pet_cursor%notfound;
             dbms_output.put_line(   'Pet ID: ' || v_id
                                 || ', Name: ' || v_name
                                 || ', Species: ' || v_species
@@ -70,6 +84,7 @@ create or replace package body owner_package as
         end loop;
         close pet_cursor;
     end printPets;
+    
     
     function getPets(
         v_species in varchar2 default null
@@ -112,6 +127,39 @@ create or replace package body owner_package as
     end getPets;
         
         
+    procedure printAdoptions(
+        v_owner_id in number
+    ) as
+        cursor c_adoptions is
+            select adoption_id, deref(pet).pet_id as pet_id, adoption_date, descriptions
+            from table(getAdoptions(v_owner_id));
+        v_adoptions t_adoptions;
+        v_pet ref t_pets;
+    begin
+        for rec in c_adoptions loop
+            dbms_output.put_line('Adoption ID: ' || rec.adoption_id || 
+                             ', Pet ID: ' || rec.pet_id ||
+                             ', Adoption Date: ' || TO_CHAR(rec.adoption_date, 'YYYY-MM-DD') ||
+                             ', Description: ' || rec.descriptions);
+        end loop;
+    end printAdoptions;
+    
+    function getAdoptions(
+        v_owner_id in  number
+    ) return k_adoptions pipelined is v_adoptions k_adoptions;
+    begin
+        select adoptions into v_adoptions
+        from owners
+        where owner_id = v_owner_id;
+        
+        for i in 1..v_adoptions.count loop
+            pipe row (v_adoptions(i));
+        end loop;
+        
+        return;
+    end getAdoptions;
+    
+
     procedure adoptPet(
         v_owner_id in number,
         v_pet_id in number,
@@ -123,55 +171,97 @@ create or replace package body owner_package as
                 from owners
                 where owner_id = m
             );
-        cursor v_pets_cur(n number) is select ref(p) 
-            from pets p
-            where n = p.pet_id;
         v_pet_ref ref t_pets;
         v_rows number := 0;
-        v_adoptions number := 0;
-    begin
+        v_owners number := 0;
+        v_adoptions_amount number := 0;
+        v_adoptions k_adoptions;
+        v_status varchar(30);
+    begin  
+            /* Sprawdzanie czy w³aœciciel istnieje w bazie. */
+            select count(*) into v_owners
+            from owners where owner_id = v_owner_id;
+
+            if v_owners < 1 then
+                raise ownerNotFoundException;
+            end if;
+            
+            /* Sprawdzanie czy liczba zaadoptowanych zwierz¹t jest mniejsza od 3. */
             open v_owner_cur(v_owner_id);
             loop
-                fetch v_owner_cur into v_adoptions;
+                fetch v_owner_cur into v_adoptions_amount;
                 exit when v_owner_cur%notfound;
             end loop;
-            if v_adoptions > 3 then
-                v_result := 'ERROR: Owner has too much adopted pets.';
-                return;
+            if v_adoptions_amount > 3 then
+                raise tooManyAdoptions;
             end if;
         
-            open v_pets_cur(v_pet_id);
-            loop
-                fetch v_pets_cur into v_pet_ref;
-                exit when v_pets_cur%notfound;
-                v_rows := v_rows + 1;
-            end loop;
-            close v_pets_cur;
+
+            /* Sprawdzanie czy zwierzê o podanym ID istnieje i czy jego status jest wolny. */
+            select count(pet_id) into v_rows
+            from pets where pet_id = v_pet_id;
+
+            select ref(p), p.status into v_pet_ref, v_status
+            from pets p where p.pet_id = v_pet_id;
             
             if v_rows = 0 then
-                v_result := 'ERROR: Pet does not exist.';
-                return;
-            elsif v_rows > 1 then
-                v_result := 'ERROR: Database is incorrect - many pets with selected ID.';
-                return;
+                raise petNotFound;
+            elsif v_status <> 'Available' then
+                raise petNotAvailable;
             end if;
             
+            /* Powiêkszanie listy adopcji o kolejne zwierzê. */
+            insert into table(
+                select adoptions
+                from owners
+                where owner_id = v_owner_id
+            ) values (
+                seq_adoptions.nextval,
+                v_pet_ref,
+                sysdate,
+                'Successed.'
+            );
+
+            /* Ustawienie statusu zwierzêcia na zaadoptowane. */
             update pets
             set status = 'Adopted'
             where pet_id = v_pet_id;
-            v_result := 'Success.';
-            
-            insert into adoptions
-            values (seq_adoptions.nextval, v_pet_ref, sysdate, 'Successed.');
             commit;
-        
+            
+            v_result := 'Success.';
         exception
-            when no_data_found then
-                v_result := 'ERROR: No data.';
+            when ownerNotFoundException then
+                v_result := 'Owner does not exist.';
+            when petNotAvailable then
+                v_result := 'Pet is not available to adopt.';
+            when petNotFound then
+                v_result := 'Pet does not exist.';
+            when tooManyAdoptions then
+                v_result := 'Owner has too much adopted animals.';
             when others then
-                v_result := 'ERROR: Uknown.';
+                v_result := 'Uknown error.';
+                dbms_output.put_line(sqlerrm);
     end adoptPet;
     
+    
+    procedure cancelAdoption(
+        v_owner_id in number,
+        v_pet_id in number,
+        v_result out varchar2
+    ) as
+    begin
+        delete from table(select o.adoptions from owners o where o.owner_id = v_owner_id) a 
+        where deref(a.pet).pet_id = v_pet_id;
+        
+        v_result := 'Success.';
+        commit;
+    exception
+        when no_data_found then
+            v_result := 'Data not found';
+        when others then
+            v_result := 'Unknow error.';
+            dbms_output.put_line(sqlerrm);
+    end cancelAdoption;
 end owner_package;
 /
     
@@ -183,26 +273,52 @@ delete from owners;
 /
 
 
-/* Uzupe³nij w³aœcicieli */
+/* Uzupe³nij w³aœcicieli. */
 begin
-    owner_package.addOwner('Adi', 'Cherryson', 'Argoland 12/41', null);
-    owner_package.addOwner('Karl', 'Pron', 'Argoland 41/65', null);
-    owner_package.addOwner('Alicja', 'Lifter', 'Argoland 11/11', null);
-    owner_package.addOwner('Rinah', 'Devi', 'Tartar 54/76', null);
-    owner_package.addOwner('Zinia', 'Vett', 'Paradyzja 6/7', null);
+    owner_package.addOwner('Adi', 'Cherryson', 'Argoland 12/41');
+    owner_package.addOwner('Karl', 'Pron', 'Argoland 41/65');
+    owner_package.addOwner('Alicja', 'Lifter', 'Argoland 11/11');
+    owner_package.addOwner('Rinah', 'Devi', 'Tartar 54/76');
+    owner_package.addOwner('Zinia', 'Vett', 'Paradyzja 6/7');
 end;
 /
 
-/* Wypisz zwierzêta */
+/* Wypisz zwierzêta. */
 begin
     owner_package.printPets('Cat');
 end;
+/
 
+select * from owners;
 
-/* Zaadoptuj zwierzêta. */
+/* Zaadoptuj zwierzê. */
 declare
     result varchar2(200);
+    owner_id number := 1;
+    pet_id1 number := 1;
+    pet_id2 number := 2;
 begin
-    owner_package.adoptPet(seq_owners.currval, seq_pets.currval, result);
+    owner_package.adoptPet(owner_id, pet_id1, result);
+    owner_package.adoptPet(owner_id, pet_id2, result);
+    dbms_output.put_line('OPERATION RESULT: ' || result);
 end;
-select * from adoptions;
+/
+
+/* Wypisz adopcje. */
+begin
+    owner_package.printAdoptions(1);
+end;
+/
+
+/* Usuñ adopcjê. */
+declare
+    result varchar2(200);
+    owner_id number := 1;
+    pet_id number := 1;
+begin
+    owner_package.cancelAdoption(owner_id, pet_id, result);
+    dbms_output.put_line('OPERATION RESULT: ' || result);
+end;
+/
+
+

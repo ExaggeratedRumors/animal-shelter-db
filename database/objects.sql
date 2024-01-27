@@ -86,7 +86,7 @@ create or replace type t_donations as object (
 /
 
 
-/* Tworzenie tabeli na podstawie typÃ³w */
+/* Tworzenie tabeli na podstawie typów */
 /*---------------------------------------------------*/
 
 create table adoptions of t_adoptions (
