@@ -66,7 +66,6 @@ create or replace type t_duties as object (
 );
 /
 
-
 create or replace type t_donators as object (
     donator_id number,
     firstname varchar2(20),
