@@ -4,9 +4,9 @@
 create or replace package owner_package as
     /* Zarejestrowanie w³aœciciela */
     procedure addOwner(
-        firstname in varchar2,
-        lastname in varchar2,
-        address in varchar2
+        v_firstname in varchar2,
+        v_lastname in varchar2,
+        v_address in varchar2
     );
     
     /* Wyœwietlanie listy zwierz¹t o okreœlonym gatunku */
@@ -28,6 +28,7 @@ create or replace package owner_package as
     procedure cancelAdoption(v_owner_id in number, v_pet_id in number, v_result out varchar2);
 
     /* Wyj¹tki */
+    ownerAlreadyExists exception;
     ownerNotFoundException exception;
     petNotAvailable exception;
     petNotFound exception;
@@ -39,21 +40,35 @@ end owner_package;
 
 create or replace package body owner_package as
     procedure addOwner(
-        firstname in varchar2,
-        lastname in varchar2,
-        address in varchar2
+        v_firstname in varchar2,
+        v_lastname in varchar2,
+        v_address in varchar2
     ) as 
+        v_owners number;
     begin
-        insert into owners o values (
-            seq_owners.nextval,
-            firstname,
-            lastname,
-            address,
-            k_adoptions(),
-            sysdate
-        );
-        commit;
+            v_owners := 0;
+            select count(*) into v_owners
+            from owners
+            where firstname = v_firstname and lastname = v_lastname and address = v_address;
+            
+            if v_owners > 0 then
+                raise ownerAlreadyExists;
+            end if;
+        
+            insert into owners o values (
+                seq_owners.nextval,
+                v_firstname,
+                v_lastname,
+                v_address,
+                k_adoptions(),
+                sysdate
+            );
+            commit;
+        exception
+            when ownerAlreadyExists then
+                dbms_output.put_line('Owner already exists.');
     end addOwner;
+    
     
     procedure printPets(
         a_species in varchar2 default null
