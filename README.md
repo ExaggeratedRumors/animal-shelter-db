@@ -25,7 +25,7 @@ Objective data base project of animal shelter.
 
 ## Packets
 
-- admin_package - API for system admin.
-- employee_package - API for shelter employee.
-- donator_package - API for donators.
-- owner_package - API for pets owners and adopters.
+- `admin_package` - API for system admin.
+- `employee_package` - API for shelter employee.
+- `donator_package` - API for donators.
+- `owner_package` - API for pets owners and adopters.
