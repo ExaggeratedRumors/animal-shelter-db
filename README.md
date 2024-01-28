@@ -12,7 +12,7 @@ Objective data base project of animal shelter.
 ## Relation Diagram
 
 <p align="center">
-    <img src="images/relation-diagram.png" width="800"/> 
+    <img src="images/relations-diagram.png" width="800"/> 
 </p>
 
 
