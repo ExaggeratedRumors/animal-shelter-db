@@ -1,8 +1,9 @@
+/* API administratora systemu */
+/*---------------------------------------------------*/
+
 create or replace package admin_package as
    
     PROCEDURE addDuty(
-    --wypisuje Error: -2291 - ORA-02291: naruszono wi?zy spójno?ci (SYS.SYS_C007502) - nie znaleziono klucza nadrz?dnego
-    -- gdy podano nieistniejacy index boxa lub emp
         p_emp_id IN NUMBER,
         p_box_id IN NUMBER,
         p_weekday IN NUMBER,
@@ -109,6 +110,10 @@ create or replace package body admin_package as
     END;
 end admin_package;
 /
+
+
+/* Test API */
+/*---------------------------------------------------*/
 
 BEGIN
     admin_package.addDuty(1,1,1,8,16, 'Feeding');

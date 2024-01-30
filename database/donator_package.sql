@@ -14,6 +14,12 @@ package donator_package as
     
     /* Pobieranie listy dotacji */
     function getDonations(p_donator_id in number) return sys_refcursor;  
+	
+	/* Wyœwietlanie listy zwierz¹t o okreœlonym gatunku */
+    procedure printPets(a_species in varchar2 default null);
+    
+    /* Pobieranie listy zwierz¹t o okreœlonym gatunku */
+    function getPets(v_species in varchar2 default null) return sys_refcursor;
     
     /* Wyj¹tki */
     donatorAlreadyExists exception;
@@ -164,6 +170,78 @@ create or replace package body donator_package as
             where deref(d.donator).donator_id = p_donator_id;
         return v_cursor;
     end getDonations;
+	
+	
+	procedure printPets(
+        a_species in varchar2 default null
+    ) as
+        pet_cursor sys_refcursor;
+        v_id number;
+        v_name varchar2(100);
+        v_breed varchar2(100);
+        v_species varchar(100);
+        v_status varchar2(100);
+        v_joined date;
+        v_health varchar2(100);
+        v_behaviour varchar2(100);
+        v_description varchar2(100);
+        v_picture blob;
+    begin
+        pet_cursor := owner_package.getPets(a_species);
+        loop
+            fetch pet_cursor into v_id, v_name, v_species, v_breed, v_status,
+                                v_joined, v_health, v_behaviour, v_description,
+                                v_picture;
+            exit when pet_cursor%notfound;
+            dbms_output.put_line(   'Pet ID: ' || v_id
+                                || ', Name: ' || v_name
+                                || ', Species: ' || v_species
+                                || ', Status: ' || v_status
+                                );
+        end loop;
+        close pet_cursor;
+    end printPets;
+    
+    
+    function getPets(
+        v_species in varchar2 default null
+    ) return sys_refcursor is
+        v_cursor sys_refcursor;
+    begin
+        if v_species is null then
+            open v_cursor for 
+                select  pet_id,
+                        name,
+                        species,
+                        breed,
+                        status,
+                        joined_at,
+                        health,
+                        behaviour,
+                        description,
+                        picture  
+                from pets
+                where status = 'Available' and left_at is null;
+            return v_cursor;
+        else
+            open v_cursor for
+                select  pet_id,
+                        name,
+                        species,
+                        breed,
+                        status,
+                        joined_at,
+                        health,
+                        behaviour,
+                        description,
+                        picture  
+                from pets
+                where lower(species) = lower(v_species) 
+                    and status = 'Available' 
+                    and left_at is null;
+            return v_cursor;
+        end if;
+    end getPets;
 end donator_package;
 /
 

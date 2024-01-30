@@ -237,9 +237,15 @@ create or replace package body owner_package as
                 'Successed.'
             );
 
+			/* Ustawienie statusu zwierzêcia na zaadoptowane. */
+			update pets
+			set box = null
+			
+
+
             /* Ustawienie statusu zwierzêcia na zaadoptowane. */
             update pets
-            set status = 'Adopted'
+            set status = 'Queued'
             where pet_id = v_pet_id;
             commit;
             
@@ -265,11 +271,16 @@ create or replace package body owner_package as
         v_result out varchar2
     ) as
     begin
-        delete from table(select o.adoptions from owners o where o.owner_id = v_owner_id) a 
-        where deref(a.pet).pet_id = v_pet_id;
-        
-        v_result := 'Success.';
-        commit;
+			delete from table(select o.adoptions from owners o where o.owner_id = v_owner_id) a 
+			where deref(a.pet).pet_id = v_pet_id;
+			
+			update pets
+			set status = 'Available'
+			where pet_id = v_pet_id;
+			commit;
+				
+			v_result := 'Success.';
+			commit;
     exception
         when no_data_found then
             v_result := 'Data not found';

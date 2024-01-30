@@ -1,16 +1,31 @@
+/* API pracownika schroniska  */
+/*---------------------------------------------------*/
+
 create or replace package employee_package as
-   
+    /* Zarejestrowanie pracownika */
     procedure addEmployee(
         firstname in varchar2,
         lastname in varchar2,
         address in varchar2,
         role in varchar2
     );
+	
+	/* Wypisanie listy zwierząt */
     procedure getPets(pet_species in varchar2);
+	
+	/* Pobranie ID boxa */
     FUNCTION getBoxId(spaceLeft IN NUMBER, box_species varchar2) RETURN NUMBER;
+	
+	/* Pobranie ID pustego Boxa */
     FUNCTION getEmptyBox(box_species varchar2) RETURN NUMBER;
+	
+	/* Pobranie dyżuru */
     FUNCTION getDuties(p_weekday IN NUMBER) RETURN SYS_REFCURSOR;
+	
+	/* Wyświetlenie dyżurów*/
     PROCEDURE printDuties(weekday NUMBER);
+	
+	/* Osadzenie zwierzęcia */
     PROCEDURE addPet(
         name IN VARCHAR2,
         species IN VARCHAR2,
@@ -21,10 +36,26 @@ create or replace package employee_package as
         description IN VARCHAR2,
         picture IN BLOB
     );
+	
+	/* Usunięcie zwierzęcia */
     PROCEDURE removePet(remove_pet_id IN NUMBER);
+	
+	/* Serwisowanie adopcji */
+    PROCEDURE acceptAdoption(remove_pet_id IN NUMBER);
+	
+	/* Wprowadzanie zwierzęcia do boxa */
+	PROCEDURE putPetIntoBox(pet_id IN NUMBER);
+
+	/* Wyświetlenie zwierząt oraz boxów */
     PROCEDURE printBoxesAndPets;
+	
+	/* Pobranie transakcji dotacji zwierzęcia */
     FUNCTION getTransactions RETURN SYS_REFCURSOR;
+	
+	/* Wyświetlenie transakcji dotacji zwierzęcia */
     PROCEDURE printTransactions;
+	
+	/* Zmiana statusu zwierzęcia */
     procedure changeStatus(p_pet_id NUMBER, p_new_status VARCHAR2);
 end employee_package;
 /
@@ -246,6 +277,52 @@ create or replace package body employee_package as
                 DBMS_OUTPUT.PUT_LINE('An error occurred while removing the pet with ID ' || remove_pet_id || ': ' || SQLERRM);
         END removePet;
         
+		
+	PROCEDURE acceptAdoption(remove_pet_id IN NUMBER) IS
+            v_box_id NUMBER;
+        BEGIN
+            -- Find the box_id associated with the given pet_id
+            SELECT DEREF(p.box).box_id INTO v_box_id
+            FROM pets p
+            WHERE p.pet_id = remove_pet_id;
+            
+            UPDATE boxes SET current_capacity = current_capacity - 1 WHERE box_id = v_box_id;
+    
+	        UPDATE pets SET status = "Adopted";
+
+            DBMS_OUTPUT.PUT_LINE('Pet with ID ' || remove_pet_id || ' removed successfully.');
+            COMMIT;
+        EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+                DBMS_OUTPUT.PUT_LINE('Pet with ID ' || remove_pet_id || ' not found.');
+            WHEN OTHERS THEN
+                DBMS_OUTPUT.PUT_LINE('An error occurred while removing the pet with ID ' || remove_pet_id || ': ' || SQLERRM);
+        END acceptAdoption;
+
+
+	PROCEDURE putPetIntoBox(pet_id IN NUMBER) IS
+            v_box_id NUMBER;
+			v_spiecies varchar(50);
+			v_box ref t_box;
+        BEGIN
+			SELECT p.spiecies INTO v_spiecies FROM PETS WHERE p.pet_id = pet_id;
+			
+			SELECT REF(b) INTO v_box FROM boxes b WHERE b.box_id = v_box_id);
+			
+			v_box_id := getEmptyBox(v_spiecies); -- Get a box with available space based on species
+			UPDATE pets SET box = v_box FROM pets p WHERE p.pet_id = pet_id;
+			UPDATE pets SET status = 'Available' FROM pets p WHERE p.pet_id = pet_id;
+		
+            UPDATE boxes SET current_capacity = current_capacity + 1 WHERE box_id = v_box_id;
+            DBMS_OUTPUT.PUT_LINE('Added '|| name || ' the ' || species || ' into box #' || v_box_id || '.');
+            COMMIT;
+        EXCEPTION
+            WHEN NO_DATA_FOUND THEN
+                DBMS_OUTPUT.PUT_LINE('Pet with ID ' || remove_pet_id || ' not found.');
+            WHEN OTHERS THEN
+                DBMS_OUTPUT.PUT_LINE('An error occurred while removing the pet with ID ' || remove_pet_id || ': ' || SQLERRM);
+        END putPetIntoBox;
+
         
     PROCEDURE printBoxesAndPets IS
         CURSOR box_cursor IS
@@ -346,6 +423,10 @@ create or replace package body employee_package as
 
 end employee_package;
 /
+
+
+/* Test API */
+/*---------------------------------------------------*/
 
 SET SERVEROUTPUT ON;
 
