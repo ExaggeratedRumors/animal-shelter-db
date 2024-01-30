@@ -4,6 +4,7 @@
 drop package owner_package;
 drop package employee_package;
 drop package donator_package;
+drop package admin_package;
 
 drop table adoptions;
 drop table donations;
@@ -30,6 +31,7 @@ drop sequence seq_boxes;
 drop sequence seq_donators;
 drop sequence seq_owners;
 drop sequence seq_adoptions;
+drop sequence seq_duties;
 
 delete from pets;
 delete from boxes;

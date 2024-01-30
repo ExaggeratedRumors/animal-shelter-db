@@ -9,7 +9,8 @@ create or replace package employee_package as
     procedure getPets(pet_species in varchar2);
     FUNCTION getBoxId(spaceLeft IN NUMBER, box_species varchar2) RETURN NUMBER;
     FUNCTION getEmptyBox(box_species varchar2) RETURN NUMBER;
-    procedure getDuties(p_weekday IN NUMBER);
+    FUNCTION getDuties(p_weekday IN NUMBER) RETURN SYS_REFCURSOR;
+    PROCEDURE printDuties(weekday NUMBER);
     PROCEDURE addPet(
         name IN VARCHAR2,
         species IN VARCHAR2,
@@ -118,50 +119,50 @@ create or replace package body employee_package as
             RETURN NULL;
     END getEmptyBox;
 
-    PROCEDURE getDuties(p_weekday IN NUMBER) AS
-        -- Declare cursor variables
-        CURSOR duties_cursor IS
-        SELECT d.emp_id, d.box_id, d.weekday, d.start_hour, d.end_hour, d.responsibilities, e.firstname AS emp_firstname, e.lastname AS emp_lastname
-        FROM duties d
-        JOIN employees e ON d.emp_id = e.emp_id
-        WHERE d.weekday = p_weekday;
-
-        v_emp_id NUMBER;
+    FUNCTION getDuties(p_weekday IN NUMBER) RETURN SYS_REFCURSOR AS
+        v_duties_cursor SYS_REFCURSOR;
+    BEGIN
+        OPEN v_duties_cursor FOR
+            SELECT d.duty_id,
+                   DEREF(d.emp).firstname || ' ' || DEREF(d.emp).lastname AS employee_name,
+                   DEREF(d.box).box_id,
+                   d.start_hour,
+                   d.end_hour,
+                   d.responsibilities
+              FROM duties d
+             WHERE d.weekday = p_weekday;
+    
+        RETURN v_duties_cursor;
+    END getDuties;
+    
+    
+    PROCEDURE printDuties(weekday NUMBER) AS
+        v_duties_cursor SYS_REFCURSOR;
+        v_duty_id NUMBER;
         v_box_id NUMBER;
-        v_weekday NUMBER;
+        v_employee_name VARCHAR2(50);
         v_start_hour NUMBER;
         v_end_hour NUMBER;
-        v_responsibilities VARCHAR2(100);
-        v_emp_firstname VARCHAR2(20);
-        v_emp_lastname VARCHAR2(20);
-    
+        v_responsibilities VARCHAR2(50);
     BEGIN
-        -- Open the cursor
-        OPEN duties_cursor;
-        DBMS_OUTPUT.PUT_LINE('Duties for weekday '||p_weekday||':');
-        LOOP
-            FETCH duties_cursor INTO v_emp_id, v_box_id, v_weekday, v_start_hour, v_end_hour, v_responsibilities,
-                                      v_emp_firstname, v_emp_lastname;
-            EXIT WHEN duties_cursor%NOTFOUND;
+        v_duties_cursor := getDuties(weekday);
     
-            -- Process the fetched data
-            DBMS_OUTPUT.PUT_LINE('Employee #'||v_emp_id ||', ' || v_emp_firstname || ' ' || v_emp_lastname);
+        LOOP
+            FETCH v_duties_cursor INTO v_duty_id, v_employee_name, v_box_id, v_start_hour, v_end_hour, v_responsibilities;
+            EXIT WHEN v_duties_cursor%NOTFOUND;
+    
+            DBMS_OUTPUT.PUT_LINE('Duty ID: ' || v_duty_id);
+            DBMS_OUTPUT.PUT_LINE('Employee: ' || v_employee_name);
             DBMS_OUTPUT.PUT_LINE('Box ID: ' || v_box_id);
-            DBMS_OUTPUT.PUT_LINE('Weekday: ' || v_weekday);
             DBMS_OUTPUT.PUT_LINE('Start Hour: ' || v_start_hour);
             DBMS_OUTPUT.PUT_LINE('End Hour: ' || v_end_hour);
             DBMS_OUTPUT.PUT_LINE('Responsibilities: ' || v_responsibilities);
-            DBMS_OUTPUT.PUT_LINE('-----------------------');
+            DBMS_OUTPUT.PUT_LINE('------------------------');
         END LOOP;
     
-        -- Close the cursor
-        CLOSE duties_cursor;
-    
-    EXCEPTION
-        WHEN OTHERS THEN
-            -- Handle exceptions as needed
-            DBMS_OUTPUT.PUT_LINE('Error: ' || SQLCODE || ' - ' || SQLERRM);
-    END getDuties;
+        CLOSE v_duties_cursor;
+    END printDuties;
+
 
     
     PROCEDURE addPet(
@@ -388,14 +389,14 @@ BEGIN
 END;
 /
 
---add aggressive dog
+--add aggressive caat
 DECLARE
     v_picture BLOB := NULL;
 BEGIN
     employee_package.addPet(
         'Baddy',    -- name
-        'Dog',      -- species
-        'Labrador', -- breed
+        'Cat',      -- species
+        'Alley', -- breed
         'Available', -- status
         'Good',     -- health
         'Aggressive',  -- behaviour
@@ -403,7 +404,7 @@ BEGIN
         v_picture
     );
     
-    employee_package.getpets('Dog');
+    employee_package.getpets('Cat');
 END;
 /
 
@@ -453,7 +454,7 @@ end;
 
 --duties
 begin
-    employee_package.getDuties(1);
+    employee_package.printDuties(1);
 end;
 
 
@@ -461,3 +462,5 @@ end;
 begin
     employee_package.printTransactions;
 end;
+
+

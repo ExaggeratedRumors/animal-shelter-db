@@ -57,8 +57,9 @@ create or replace type t_employees as object (
 /
 
 create or replace type t_duties as object (
-    emp_id number,
-    box_id number,
+    duty_id number,
+    emp ref t_employees,
+    box ref t_boxes,
     weekday number,
     start_hour number,
     end_hour number,
@@ -115,9 +116,9 @@ create table pets of t_pets (
 /
 
 create table duties of t_duties (
-    primary key (emp_id, box_id),
-    foreign key(emp_id) references employees(emp_id) on delete cascade,
-    foreign key(box_id) references boxes(box_id) on delete cascade
+    primary key (duty_id),
+    foreign key (emp) references employees on delete cascade,
+    foreign key (box) references boxes on delete cascade
 );
 /
 
@@ -143,3 +144,4 @@ create sequence seq_owners minvalue 1 start with 1;/
 create sequence seq_employees minvalue 1 start with 1;/
 create sequence seq_boxes minvalue 1 start with 1;/
 create sequence seq_donators minvalue 1 start with 1;/
+create sequence seq_duties minvalue 1 start with 1;/
