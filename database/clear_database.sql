@@ -20,8 +20,8 @@ drop type t_donations;
 drop type t_duties;
 drop type t_owners;
 drop type t_donators;
-drop type t_boxes;
 drop type t_pets;
+drop type t_boxes;
 drop type t_employees;
 drop type k_adoptions;
 

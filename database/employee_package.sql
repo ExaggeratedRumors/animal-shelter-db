@@ -41,10 +41,10 @@ create or replace package employee_package as
     PROCEDURE removePet(remove_pet_id IN NUMBER);
 	
 	/* Serwisowanie adopcji */
-    PROCEDURE acceptAdoption(remove_pet_id IN NUMBER);
+    PROCEDURE acceptAdoption(p_pet_id IN NUMBER);
 	
 	/* Wprowadzanie zwierzęcia do boxa */
-	PROCEDURE putPetIntoBox(pet_id IN NUMBER);
+	PROCEDURE putPetIntoBox(p_pet_id IN NUMBER);
 
 	/* Wyświetlenie zwierząt oraz boxów */
     PROCEDURE printBoxesAndPets;
@@ -206,53 +206,40 @@ create or replace package body employee_package as
         description IN VARCHAR2,
         picture IN BLOB
     ) IS
-        v_box_id NUMBER;
+        v_pet_id NUMBER := seq_pets.NEXTVAL;
     BEGIN
-        -- Check if the behavior is "Aggressive"
-        IF UPPER(behaviour) = 'AGGRESSIVE' THEN
-            v_box_id := getEmptyBox(species); -- Get a box with available space based on species
-        ELSE
-            v_box_id := getBoxId(1, species); -- Get a valid box based on the default criteria
-        END IF;
-    
-        IF v_box_id IS NOT NULL THEN
-            -- Insert the new pet
-            INSERT INTO pets (
-                pet_id,
-                name,
-                species,
-                breed,
-                status,
-                joined_at,
-                donation_status,
-                health,
-                behaviour,
-                description,
-                picture,
-                box
-            ) VALUES (
-                seq_pets.NEXTVAL,
-                name,
-                species,
-                breed,
-                status,
-                SYSDATE,
-                0,
-                health,
-                behaviour,
-                description,
-                picture,
-                (SELECT REF(b) FROM boxes b WHERE b.box_id = v_box_id)
-            );
-    
-            -- Increment current_capacity of the associated box
-            UPDATE boxes SET current_capacity = current_capacity + 1 WHERE box_id = v_box_id;
-            DBMS_OUTPUT.PUT_LINE('Added '|| name || ' the ' || species || ' into box #' || v_box_id || '.');
-            COMMIT;
-        ELSE
-            -- Handle the case when no box with available space is found
+        
+        commit;
+        INSERT INTO pets (
+            pet_id,
+            name,
+            species,
+            breed,
+            status,
+            joined_at,
+            donation_status,
+            health,
+            behaviour,
+            description,
+            picture
+        ) VALUES (
+            v_pet_id,
+            name,
+            species,
+            breed,
+            status,
+            SYSDATE,
+            0,
+            health,
+            behaviour,
+            description,
+            picture
+        );
+        putpetintobox(v_pet_id);
+            
+    EXCEPTION
+        WHEN OTHERS THEN
             DBMS_OUTPUT.PUT_LINE('No box with available space found.');
-        END IF;
     END addPet;
 
     
@@ -278,49 +265,66 @@ create or replace package body employee_package as
         END removePet;
         
 		
-	PROCEDURE acceptAdoption(remove_pet_id IN NUMBER) IS
+	PROCEDURE acceptAdoption(p_pet_id IN NUMBER) IS
             v_box_id NUMBER;
         BEGIN
             -- Find the box_id associated with the given pet_id
             SELECT DEREF(p.box).box_id INTO v_box_id
             FROM pets p
-            WHERE p.pet_id = remove_pet_id;
+            WHERE p.pet_id = p_pet_id;
             
             UPDATE boxes SET current_capacity = current_capacity - 1 WHERE box_id = v_box_id;
-    
-	        UPDATE pets SET status = "Adopted";
+        
+            UPDATE pets p set box = NULL WHERE p.pet_id = p_pet_id;
+	        UPDATE pets p SET status = 'Adopted' WHERE p.pet_id = p_pet_id;
 
-            DBMS_OUTPUT.PUT_LINE('Pet with ID ' || remove_pet_id || ' removed successfully.');
+            DBMS_OUTPUT.PUT_LINE('Pet with ID ' || p_pet_id || ' removed successfully.');
+           
             COMMIT;
         EXCEPTION
             WHEN NO_DATA_FOUND THEN
-                DBMS_OUTPUT.PUT_LINE('Pet with ID ' || remove_pet_id || ' not found.');
+                DBMS_OUTPUT.PUT_LINE('Pet with ID ' || p_pet_id || ' not found.');
             WHEN OTHERS THEN
-                DBMS_OUTPUT.PUT_LINE('An error occurred while removing the pet with ID ' || remove_pet_id || ': ' || SQLERRM);
+                DBMS_OUTPUT.PUT_LINE('An error occurred while removing the pet with ID ' || p_pet_id || ': ' || SQLERRM);
         END acceptAdoption;
 
 
-	PROCEDURE putPetIntoBox(pet_id IN NUMBER) IS
+	PROCEDURE putPetIntoBox(p_pet_id IN NUMBER) IS
             v_box_id NUMBER;
-			v_spiecies varchar(50);
-			v_box ref t_box;
-        BEGIN
-			SELECT p.spiecies INTO v_spiecies FROM PETS WHERE p.pet_id = pet_id;
-			
-			SELECT REF(b) INTO v_box FROM boxes b WHERE b.box_id = v_box_id);
-			
-			v_box_id := getEmptyBox(v_spiecies); -- Get a box with available space based on species
-			UPDATE pets SET box = v_box FROM pets p WHERE p.pet_id = pet_id;
-			UPDATE pets SET status = 'Available' FROM pets p WHERE p.pet_id = pet_id;
+			v_species varchar2(50);
+			v_box ref t_boxes;
+            v_behaviour varchar2(50);
+            NoBoxLeft EXCEPTION;
+        BEGIN   
+			SELECT p.species INTO v_species FROM PETS p WHERE p.pet_id = p_pet_id;
+            SELECT p.behaviour INTO v_behaviour FROM PETS p WHERE p.pet_id = p_pet_id; 
+            
+            -- Check if the behavior is "Aggressive"
+            IF UPPER(v_behaviour) = 'AGGRESSIVE' THEN
+                v_box_id := getEmptyBox(v_species); -- Get a box with available space based on species
+            ELSE
+                v_box_id := getBoxId(1, v_species); -- Get a valid box based on the default criteria
+            END IF;
+            if v_box_id is NULL THEN
+                rollback;
+                raise NoBoxLeft;
+            end if;
+                 
+            SELECT REF(b) INTO v_box FROM boxes b WHERE b.box_id = v_box_id;
+        
+			UPDATE pets p SET box = v_box WHERE p.pet_id = p_pet_id;
+            
+			UPDATE pets p SET status = 'Available' WHERE p.pet_id = p_pet_id;
 		
+
             UPDATE boxes SET current_capacity = current_capacity + 1 WHERE box_id = v_box_id;
-            DBMS_OUTPUT.PUT_LINE('Added '|| name || ' the ' || species || ' into box #' || v_box_id || '.');
+            DBMS_OUTPUT.PUT_LINE('Added pet #'|| p_pet_id ||' into box #' || v_box_id || '.');
             COMMIT;
         EXCEPTION
             WHEN NO_DATA_FOUND THEN
-                DBMS_OUTPUT.PUT_LINE('Pet with ID ' || remove_pet_id || ' not found.');
-            WHEN OTHERS THEN
-                DBMS_OUTPUT.PUT_LINE('An error occurred while removing the pet with ID ' || remove_pet_id || ': ' || SQLERRM);
+                DBMS_OUTPUT.PUT_LINE('Pet with ID ' || p_pet_id || ' not found.');
+            WHEN NoBoxLeft THEN
+                DBMS_OUTPUT.PUT_LINE('No box with enough space found.');
         END putPetIntoBox;
 
         
@@ -543,5 +547,11 @@ end;
 begin
     employee_package.printTransactions;
 end;
+
+begin
+    employee_package.acceptAdoption(1);
+end;
+
+select * from pets
 
 

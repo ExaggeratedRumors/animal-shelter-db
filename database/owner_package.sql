@@ -234,16 +234,10 @@ create or replace package body owner_package as
                 seq_adoptions.nextval,
                 v_pet_ref,
                 sysdate,
-                'Successed.'
+                'Succeed'
             );
 
-			/* Ustawienie statusu zwierzêcia na zaadoptowane. */
-			update pets
-			set box = null
-			
-
-
-            /* Ustawienie statusu zwierzêcia na zaadoptowane. */
+		    /* Ustawienie statusu zwierzêcia na zaadoptowane. */
             update pets
             set status = 'Queued'
             where pet_id = v_pet_id;
@@ -325,7 +319,7 @@ declare
     pet_id2 number := 2;
 begin
     owner_package.adoptPet(owner_id, pet_id1, result);
-    owner_package.adoptPet(owner_id, pet_id2, result);
+    --owner_package.adoptPet(owner_id, pet_id2, result);
     dbms_output.put_line('OPERATION RESULT: ' || result);
 end;
 /
