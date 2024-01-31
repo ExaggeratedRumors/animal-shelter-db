@@ -202,12 +202,14 @@ create or replace package body owner_package as
             end if;
             
             /* Sprawdzanie czy liczba zaadoptowanych zwierz¹t jest mniejsza od 3. */
+
+            
             open v_owner_cur(v_owner_id);
             loop
                 fetch v_owner_cur into v_adoptions_amount;
                 exit when v_owner_cur%notfound;
             end loop;
-            if v_adoptions_amount > 3 then
+            if v_adoptions_amount >= 3 then
                 raise tooManyAdoptions;
             end if;
         
@@ -315,8 +317,8 @@ select * from owners;
 declare
     result varchar2(200);
     owner_id number := 1;
-    pet_id1 number := 1;
-    pet_id2 number := 2;
+    pet_id1 number := 14;
+    --pet_id2 number := 10;
 begin
     owner_package.adoptPet(owner_id, pet_id1, result);
     --owner_package.adoptPet(owner_id, pet_id2, result);
